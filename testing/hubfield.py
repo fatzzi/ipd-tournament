@@ -28,7 +28,7 @@ def load_hub(path=GALLERY):
     d = d.get('strategies', d) if isinstance(d, dict) else d
     out = {}
     for s in d:
-        if s['id'].startswith('tc'):     # "tournament" copies duplicate a bot entry
+        if s['name'] in out:             # same name twice (a bot re-entered as a submission)
             continue
         ok, err = is_safe_code(s['code'])
         if not ok:

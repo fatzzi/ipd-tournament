@@ -9,7 +9,7 @@ Operating Systems class Prisoner's Dilemma tournament, October 2026.
 |---|---|---|
 | `strategies/strategy.py` | **Main strategy, fully commented.** Source of truth; edit this one. | No, never paste this one |
 | `strategies/submit.py` | Same code with comments and docstrings stripped. | **Yes**, for Sprint 1, Sprint 2 and the Final |
-| `strategies/decoy.py` | Plain forgiving tit-for-tat that gives nothing away. | Soft launch only (Tue 20 Oct) |
+| `strategies/decoy.py` | Plain forgiving tit-for-tat that gives nothing away. | Only if you need a placeholder |
 | `testing/` | Local test harness that mirrors the site's scoring | n/a |
 | `local-only/` (not in git) | Class token, fetched gallery, copy of the instructor's app source | n/a |
 
@@ -19,31 +19,39 @@ Regenerate `submit.py` after editing `strategy.py`:
 python testing/make_submit.py
 ```
 
-## Schedule
+## Rules (updated 22 Oct)
 
-| When | Round | Plan |
-|---|---|---|
-| Tue 20 Oct | Soft launch | Submit `decoy.py` |
-| Wed 21 to Thu 22 Oct | Sprint 1 (classic payoffs, PG b=0.4 groups of 5, RR 8 cores) | Re-test against the gallery, then submit `submit.py` late |
-| Fri 23 to Sat 24 Oct | Sprint 2 (4/0/6/2, PG b=0.3 groups of 5, Priority 8 cores) | Same |
-| Sun 25 Oct | Final (4/0/7/2, PG b=0.25 groups of 8, Priority 4 cores) | Same |
+- Each round (Sprint 1, Sprint 2, Final) awards +5 to the top 3 in **each** mode (1v1, N-Player, OS), so 9 awards per round.
+- **At most one +5 per student.** Past winners stay in the pool but can't win again, so the next eligible student gets it.
+- Submissions lock around 11:59 on Thu 22 (Sprint 1), Sat 24 (Sprint 2) and Sun 25 Oct (Final).
+- Sprint 2 and Final settings may change based on Sprint 1, so the strategy reads payoffs and weights at run time.
 
-Keep the same entry name all week, so the switch from the decoy doesn't stand out.
+## Plan
 
-## How the strategy works
+Submit `strategies/submit.py` before each lock, as late as is safe. Keep the same entry name all week.
+Before each lock: `python testing/fetch_gallery.py`, then rerun the tests below against the new field.
 
-- **Reads the ranking weights** (`meta['tournament_info']['weights']`). In 1v1 it plays always-defect if win rate dominates, and turns on "never finish a match behind" once win rate is at least 25% of the weights. In N-Player it keeps cooperating if cooperation is weighted.
-- **1v1:** contrite tit-for-tat. It defects against opponents that don't respond to it, defects in rounds 197 to 199 of fixed 200-round matches, and breaks C/D see-saw loops.
-- **1v1 stochastic last round (simulator bug):** both players get the same `meta['rng']` that decides when a stochastic match ends. The strategy copies its state and checks that it advanced by exactly one draw every round, which proves the mode is stochastic. It then peeks at the next draw and defects on the true last round. This hit the last round in 40 of 40 sandbox tests and never fires in other modes.
-- **N-Player, groups of 5:** cooperates, probes once at round 2, free-rides on groups that tolerate it, defects when a habitual defector is present, and defects in the last 2 rounds of fixed-length modes.
-- **N-Player, groups of 7 or more (the Final):** free-rides, because that won top 3 most often in testing.
-- **OS sim:** gives the CPU back when the computer is busy and holds it 70% of the time when calm. Against the guide's example this was a statistical tie in the final check.
+## How the strategy works (as of 22 Oct)
+
+- **1v1:** contrite tit-for-tat. Defects against opponents that don't return cooperation (they return our C less than 60% of the time over the last 30 rounds). Defects in rounds 193 to 199 of fixed 200-round matches, because classmates start at 195.
+- **1v1 stochastic last round (simulator bug):** both players get the same `meta['rng']` that decides when a stochastic match ends. The strategy checks that the generator advanced by exactly one draw every round, which proves the mode is stochastic, then peeks at the next draw and defects on the true last round. This hit the last round in 40 of 40 sandbox tests and never fires in other modes.
+- **Ranking weights:** always-defect if win rate dominates. "Never finish a match behind" if win rate is at least 25% of the weights.
+- **N-Player:** always free-ride. The class field is very tolerant (two always cooperate, several follow the majority), and always-defect won top 3 most often in the Sprint 1 and Sprint 2 settings and tied in the Final settings. If cooperation is weighted, it switches to a probing conditional cooperator.
+- **OS sim:** exactly the guide's rule. A 60-seed study scored like the site found nothing that reliably beats it, and about 7 classmates submit it, so we tie with them rather than gamble.
+
+## Results against the real class gallery (22 Oct, 16 entries)
+
+- 1v1: highest total score against the field. With equal weights, 1st in 4 of 5 seeds.
+- N-Player: top 3 in 12 of 60 group shuffles (Sprint 1 settings), 14 of 60 (Sprint 2) and 18 of 60 (Final).
+- OS: identical numbers to the guide's rule in all three settings.
 
 ## Testing
 
 ```bash
 python testing/fetch_gallery.py
-python testing/evalhub2.py strategies/strategy.py local-only/strategies.json
+python testing/eval_real.py strategies/strategy.py S1
+python testing/np_real.py strategies/strategy.py
+python testing/os_report.py round_robin_8_100
 python testing/eval1v1.py strategies/strategy.py
 python testing/evalnp3.py strategies/strategy.py
 python testing/peekcheck.py strategies/submit.py

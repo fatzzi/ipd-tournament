@@ -6,21 +6,23 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
     rnd = meta.get('round', len(my_history))
     me = my_history
     FIXED_LENGTH = 200
-    ENDGAME_1V1 = 3
+    ENDGAME_1V1 = 7
     ENDGAME_NP = 2
     PROBE_NP = 2
     FREE_RIDE_SLACK = 1
     COOP_SHARE = 0.5
     DOOMED_D = True
     OLIVE = True
-    BIG_GROUP = 7
-    CALM_YIELD = 0.3
+    BIG_GROUP = 2
+    CALM_YIELD = 0
     STOCHASTIC_CONTINUE = 0.995
+    RESPONSIVE_WINDOW = 30
+    RETURN_MIN = 0.6
     WIN_SHARE = 0.25
     if fmt == 'os_simulation':
         if not last_moves or last_moves[0] == 'D':
             return 'C'
-        return 'C' if meta['rng'].random() < CALM_YIELD else 'D'
+        return 'C' if CALM_YIELD and meta['rng'].random() < CALM_YIELD else 'D'
     if fmt == 'n_player':
         w = info.get('weights') or {}
         try:
@@ -108,12 +110,13 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
         if diff < 0:
             return 'D'
     if n >= 20:
-        after_c = [opp[t + 1] for t in range(n - 1) if me[t] == 'C']
-        after_d = [opp[t + 1] for t in range(n - 1) if me[t] == 'D']
+        lo = max(0, n - 1 - RESPONSIVE_WINDOW)
+        after_c = [opp[t + 1] for t in range(lo, n - 1) if me[t] == 'C']
+        after_d = [opp[t + 1] for t in range(lo, n - 1) if me[t] == 'D']
         if len(after_c) >= 5 and len(after_d) >= 5:
             pc = after_c.count('C') / len(after_c)
             pd = after_d.count('C') / len(after_d)
-            if pc - pd < 0.2 and pc < 0.8:
+            if pc - pd < 0.2 and pc < 0.8 or pc < RETURN_MIN:
                 return 'D'
     if opp[-1] == 'C':
         return 'C'
