@@ -19,6 +19,7 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
  POINTS_ONLY_NP = 0.8
  OS_LOOKBACK = 1
  STOCHASTIC_CONTINUE = 0.995
+ PEEK_LAST_ROUND = False
  RESPONSIVE_WINDOW = 30
  RETURN_MIN = 0.6
  WIN_SHARE = 0.25
@@ -69,7 +70,7 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
    if me_fn.one_draw_rounds == rnd and rnd >= 3:
     stochastic = True
     probe.setstate(state)
-    last_round = probe.random() > STOCHASTIC_CONTINUE
+    last_round = PEEK_LAST_ROUND and probe.random() > STOCHASTIC_CONTINUE
  except Exception:
   last_round = stochastic = False
  opp = opponents_histories[0] if opponents_histories else []

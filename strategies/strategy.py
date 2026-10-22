@@ -36,6 +36,7 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
     POINTS_ONLY_NP = 0.8   # N-Player: points share of the weights above which we just free-ride
     OS_LOOKBACK = 1        # OS sim: also give the CPU back if any of the last N signals was busy (0 = guide's rule)
     STOCHASTIC_CONTINUE = 0.995   # 1v1 stochastic mode: chance a match goes on each round
+    PEEK_LAST_ROUND = False  # 1v1: look ahead at the shared generator for the true last round (off for Sprint 1)
     RESPONSIVE_WINDOW = 30  # 1v1: rounds looked at when asking "does the opponent react to us?"
     RETURN_MIN = 0.6       # 1v1: stop cooperating if they return our C less often than this
     WIN_SHARE = 0.25      # 1v1: win-rate share of the weights that turns on "never trail"
@@ -114,7 +115,7 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
             if me_fn.one_draw_rounds == rnd and rnd >= 3:
                 stochastic = True
                 probe.setstate(state)
-                last_round = probe.random() > STOCHASTIC_CONTINUE
+                last_round = PEEK_LAST_ROUND and probe.random() > STOCHASTIC_CONTINUE
     except Exception:
         last_round = stochastic = False
 
