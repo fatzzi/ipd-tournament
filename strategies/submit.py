@@ -17,7 +17,7 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
     LEAD_NP = 4
     HOPELESS_NP = 5
     POINTS_ONLY_NP = 0.8
-    CALM_YIELD = 0
+    OS_LOOKBACK = 1
     STOCHASTIC_CONTINUE = 0.995
     RESPONSIVE_WINDOW = 30
     RETURN_MIN = 0.6
@@ -25,7 +25,10 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
     if fmt == 'os_simulation':
         if not last_moves or last_moves[0] == 'D':
             return 'C'
-        return 'C' if CALM_YIELD and meta['rng'].random() < CALM_YIELD else 'D'
+        past = opponents_histories[0] if opponents_histories else []
+        if OS_LOOKBACK and 'D' in past[-OS_LOOKBACK:]:
+            return 'C'
+        return 'D'
     if fmt == 'n_player':
         if wp / (ww + wc + wp) >= POINTS_ONLY_NP:
             return 'D'

@@ -68,10 +68,21 @@ def decoded(on_false_alarm):
     return f
 
 
+def yield_recent(k):
+    # Adaptive Yield's rule: give way if the current signal or any of this core's last k signals was D
+    def f(l, m, o, meta):
+        if not l or l[0] == 'D':
+            return 'C'
+        past = o[0] if o else []
+        return 'C' if 'D' in past[-k:] else 'D'
+    return f
+
+
 CANDS = {'win2': window(2), 'win3': window(3), 'dec_D': decoded('D'),
          'guide': calm_p(0.0), 'p0.1': calm_p(0.1), 'p0.2': calm_p(0.2), 'p0.3': calm_p(0.3),
          'p0.4': calm_p(0.4), 'allC': calm_p(1.0), 'ismile': ismile,
-         'every3': calm_every(3), 'every4': calm_every(4), 'every5': calm_every(5)}
+         'every3': calm_every(3), 'every4': calm_every(4), 'every5': calm_every(5),
+         'recent1': yield_recent(1), 'recent2': yield_recent(2), 'recent3': yield_recent(3)}
 
 sch, nc, nt, s0, ns, cand = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5]), sys.argv[6]
 f = CANDS[cand]

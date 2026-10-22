@@ -37,13 +37,13 @@ Before each lock: `python testing/fetch_gallery.py`, then rerun the tests below 
 - **1v1 stochastic last round (simulator bug):** both players get the same `meta['rng']` that decides when a stochastic match ends. The strategy checks that the generator advanced by exactly one draw every round, which proves the mode is stochastic, then peeks at the next draw and defects on the true last round. This hit the last round in 40 of 40 sandbox tests and never fires in other modes.
 - **Ranking weights:** always-defect if win rate dominates. "Never finish a match behind" if win rate is at least 25% of the weights.
 - **N-Player:** the site's results page ranks by weighted score (default 33% group win / 34% cooperation / 33% points), not raw points. One group match per player, so a group win is worth about 33 points, and a tie at the top counts as a draw (no win). The strategy defects until it leads every rival by 4 cooperations, then cooperates. If a rival defects as much as we do (a pure defector), the win is out of reach, so it cooperates fully. In discounted mode it cooperates as soon as no rival can catch up, because late rounds are worth almost no points but count fully for cooperation. It free-rides only if points are at least 80% of the weights. Missing weights are treated as the site default 33/34/33.
-- **OS sim:** exactly the guide's rule. A 60-seed study scored like the site found nothing that reliably beats it, and about 7 classmates submit it, so we tie with them rather than gamble.
+- **OS sim:** the guide's rule, plus give the CPU back if the *previous* signal was also busy (`OS_LOOKBACK = 1`). In Sprint 1 settings (seeds 1-30) it beat the guide's rule, which 8 classmates submit, in 15 of 21 ten-seed windows (mean 4.206 vs 4.232). Through the site's scoring it won on 3 of 3 seeds. Adaptive Yield uses a 2-signal lookback (4.197 mean, 14/21); head to head we're even.
 
 ## Results against the real class gallery (22 Oct afternoon, 20 entries, ranked among students only)
 
 - 1v1, equal weights: rank 1 or 2 in 8 of 8 seeds. Points-only: a near-tie of about 6 entries within 1%, top 3 in 1 of 8.
 - N-Player, Sprint 1 settings, weighted ranking, real engine: top 3 in 11 of 30 shuffles (mean rank 5.1). Always-defect: 9/30 (mean 7.9). The previous version: 1/30.
-- OS: the guide's rule, tied with most of the class.
+- OS: seed 1 through the site's scoring: us 4.19, Adaptive Yield 4.21, the guide's rule 4.23 (8 entries tied). Top 3 in 16 of 21 ten-seed windows.
 
 ## Testing
 

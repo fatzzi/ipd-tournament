@@ -12,7 +12,7 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
                 safely lead every rival, then cooperate; if a rival defects as much as we
                 do, the win is gone (a tie is not a win), so cooperate fully. Pure
                 free-riding only when the weights are (nearly) points-only.
-    OS sim    : the guide's rule: give the CPU back when busy, hold it when calm.
+    OS sim    : give the CPU back when busy now or one signal ago, hold it when calm.
     """
     info = meta.get('tournament_info') or {}
     fmt = info.get('format', '2-player')
@@ -34,7 +34,7 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
     LEAD_NP = 4            # N-Player: cooperate once we lead every rival by this many (units of c)
     HOPELESS_NP = 5        # N-Player: a rival matching our defection this many rounds = no win possible
     POINTS_ONLY_NP = 0.8   # N-Player: points share of the weights above which we just free-ride
-    CALM_YIELD = 0        # OS sim: chance to give the CPU back even when calm (0 = guide's rule)
+    OS_LOOKBACK = 1        # OS sim: also give the CPU back if any of the last N signals was busy (0 = guide's rule)
     STOCHASTIC_CONTINUE = 0.995   # 1v1 stochastic mode: chance a match goes on each round
     RESPONSIVE_WINDOW = 30  # 1v1: rounds looked at when asking "does the opponent react to us?"
     RETURN_MIN = 0.6       # 1v1: stop cooperating if they return our C less often than this
@@ -44,11 +44,15 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
     if fmt == 'os_simulation':
         # Response time only counts the wait until a task FIRST runs, so short slices
         # (C) get new tasks onto a core sooner when busy; when calm, holding the CPU
-        # avoids pointless requeues. In a 60-seed study nothing beat this reliably,
-        # and most of the class submits it, so we match it exactly (ties).
+        # avoids pointless requeues. Also yielding when the PREVIOUS signal was busy
+        # beat the guide's rule (which most of the class submits) in 15 of 21 ten-seed
+        # windows and on 3 of 3 seeds through the site's scoring.
         if not last_moves or last_moves[0] == 'D':
             return 'C'
-        return 'C' if CALM_YIELD and meta['rng'].random() < CALM_YIELD else 'D'
+        past = opponents_histories[0] if opponents_histories else []
+        if OS_LOOKBACK and 'D' in past[-OS_LOOKBACK:]:
+            return 'C'
+        return 'D'
 
     # ------------------------------------------------------------------ N-Player
     if fmt == 'n_player':
