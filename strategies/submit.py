@@ -18,8 +18,6 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
  HOPELESS_NP = 5
  POINTS_ONLY_NP = 0.8
  OS_LOOKBACK = 1
- STOCHASTIC_CONTINUE = 0.995
- PEEK_LAST_ROUND = False
  RESPONSIVE_WINDOW = 30
  RETURN_MIN = 0.6
  WIN_SHARE = 0.25
@@ -51,7 +49,6 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
   return 'C' if lead >= need else 'D'
  if 0.95 * ww + 0.3 * wp > 0.75 * ww + 0.9 * wc + 0.58 * wp:
   return 'D'
- last_round = False
  stochastic = False
  try:
   state = meta['rng'].getstate()
@@ -69,16 +66,12 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
    me_fn.prev_state = state
    if me_fn.one_draw_rounds == rnd and rnd >= 3:
     stochastic = True
-    probe.setstate(state)
-    last_round = PEEK_LAST_ROUND and probe.random() > STOCHASTIC_CONTINUE
  except Exception:
-  last_round = stochastic = False
+  stochastic = False
  opp = opponents_histories[0] if opponents_histories else []
  if not opp:
   return 'C'
  n = len(opp)
- if last_round:
-  return 'D'
  if not stochastic and FIXED_LENGTH - ENDGAME_1V1 <= rnd < FIXED_LENGTH:
   return 'D'
  if ww > 0 and ww / max(ww + wc + wp, 1e-09) >= WIN_SHARE:

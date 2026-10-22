@@ -5,8 +5,8 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
     """One strategy for all three games.
 
     1v1       : contrite tit-for-tat that stops cooperating with opponents who don't
-                return it, defects in the last 7 rounds of a 200-round match and on the
-                true last round of a stochastic match (shared-generator peek). Plays
+                return it, defects in the last 7 rounds of a 200-round match (not in
+                stochastic matches, which can run past 200). Plays
                 "never trail" when win rate is weighted, always-defect if it dominates.
     N-Player  : the site ranks by (group win, cooperation %, points %). Defect until we
                 safely lead every rival, then cooperate; if a rival defects as much as we
@@ -35,8 +35,6 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
     HOPELESS_NP = 5        # N-Player: a rival matching our defection this many rounds = no win possible
     POINTS_ONLY_NP = 0.8   # N-Player: points share of the weights above which we just free-ride
     OS_LOOKBACK = 1        # OS sim: also give the CPU back if any of the last N signals was busy (0 = guide's rule)
-    STOCHASTIC_CONTINUE = 0.995   # 1v1 stochastic mode: chance a match goes on each round
-    PEEK_LAST_ROUND = False  # 1v1: look ahead at the shared generator for the true last round (off for Sprint 1)
     RESPONSIVE_WINDOW = 30  # 1v1: rounds looked at when asking "does the opponent react to us?"
     RETURN_MIN = 0.6       # 1v1: stop cooperating if they return our C less often than this
     WIN_SHARE = 0.25      # 1v1: win-rate share of the weights that turns on "never trail"
@@ -91,12 +89,11 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
     if 0.95 * ww + 0.30 * wp > 0.75 * ww + 0.90 * wc + 0.58 * wp:
         return 'D'
 
-    # Stochastic-mode last round. The site gives both players the same generator that
-    # decides whether a stochastic match continues (one draw per round, before the moves).
-    # Copy it and look at the next draw. We only trust the peek once the generator has
-    # advanced by exactly one draw between EVERY pair of our turns this match, which
-    # proves the mode is stochastic and nobody else is drawing from it.
-    last_round = False
+    # Is this a stochastic match? The generator that decides whether a stochastic match
+    # continues advances by exactly one draw per round, so if it moved by exactly one draw
+    # between every pair of our turns, the match may run past 200: skip the endgame.
+    # (The look-ahead at the next draw for the true last round was removed for Sprint 1;
+    # it is in commit add7723.)
     stochastic = False
     try:
         state = meta['rng'].getstate()
@@ -114,18 +111,13 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
             me_fn.prev_state = state
             if me_fn.one_draw_rounds == rnd and rnd >= 3:
                 stochastic = True
-                probe.setstate(state)
-                last_round = PEEK_LAST_ROUND and probe.random() > STOCHASTIC_CONTINUE
     except Exception:
-        last_round = stochastic = False
+        stochastic = False
 
     opp = opponents_histories[0] if opponents_histories else []
     if not opp:
         return 'C'
     n = len(opp)
-
-    if last_round:
-        return 'D'
 
     # Endgame: a standard / discounted match is exactly 200 rounds.
     # (Not in a stochastic match: it may well run on past 200.)
