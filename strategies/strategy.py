@@ -8,8 +8,10 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
                 return it, defects in the last 7 rounds of a 200-round match and on the
                 true last round of a stochastic match (shared-generator peek). Plays
                 "never trail" when win rate is weighted, always-defect if it dominates.
-    N-Player  : free-ride (the class field is very tolerant), unless the ranking
-                weights cooperation; then a probing conditional cooperator.
+    N-Player  : the site ranks by (group win, cooperation %, points %). Defect until we
+                safely lead every rival, then cooperate; if a rival defects as much as we
+                do, the win is gone (a tie is not a win), so cooperate fully. Pure
+                free-riding only when the weights are (nearly) points-only.
     OS sim    : the guide's rule: give the CPU back when busy, hold it when calm.
     """
     info = meta.get('tournament_info') or {}
@@ -17,17 +19,22 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
     rnd = meta.get('round', len(my_history))
     me = my_history
 
+    # Ranking weights. With none given, the site's results page uses 33/34/33.
+    w = info.get('weights') or {}
+    try:
+        ww, wc, wp = (float(w.get(k) or 0) for k in ('win_rate', 'cooperation', 'points'))
+    except (TypeError, ValueError, AttributeError):
+        ww = wc = wp = 0.0
+    if ww + wc + wp <= 0:
+        ww, wc, wp = 0.33, 0.34, 0.33
+
     # Settings used by the class tournament (see itinerary page 5).
     FIXED_LENGTH = 200     # rounds in the standard / discounted modes
     ENDGAME_1V1 = 7        # defect in the last N rounds of a 200-round 1v1 match (classmates start at 195)
-    ENDGAME_NP = 2         # same for N-Player
-    PROBE_NP = 2           # N-Player round to test whether the group tolerates a free-rider
-    FREE_RIDE_SLACK = 1    # free-ride while at most this many others are defecting
-    COOP_SHARE = 0.5       # cooperate while at least this share of the others did
-    DOOMED_D = True        # defect when a mostly-defecting player is in the group
-    OLIVE = True           # occasional cooperation to restart a collapsed group
-    BIG_GROUP = 2          # N-Player groups this big: just free-ride (2 = always; the class field is very tolerant)
-    CALM_YIELD = 0         # OS sim: chance to give the CPU back even when calm (0 = guide's rule)
+    LEAD_NP = 4            # N-Player: cooperate once we lead every rival by this many (units of c)
+    HOPELESS_NP = 5        # N-Player: a rival matching our defection this many rounds = no win possible
+    POINTS_ONLY_NP = 0.8   # N-Player: points share of the weights above which we just free-ride
+    CALM_YIELD = 0        # OS sim: chance to give the CPU back even when calm (0 = guide's rule)
     STOCHASTIC_CONTINUE = 0.995   # 1v1 stochastic mode: chance a match goes on each round
     RESPONSIVE_WINDOW = 30  # 1v1: rounds looked at when asking "does the opponent react to us?"
     RETURN_MIN = 0.6       # 1v1: stop cooperating if they return our C less often than this
@@ -45,83 +52,37 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
 
     # ------------------------------------------------------------------ N-Player
     if fmt == 'n_player':
-        # Only the top 3 earn marks, and the top scores always go to free-riders in
-        # groups that keep cooperating anyway. In big groups someone almost always
-        # defects, so pure free-riding wins most often -- unless the ranking rewards
-        # cooperation, which we can read from the weights.
-        w = info.get('weights') or {}
-        try:
-            coop_w = float(w.get('cooperation') or 0)
-            total_w = sum(float(w.get(k) or 0) for k in ('win_rate', 'cooperation', 'points'))
-        except (TypeError, ValueError, AttributeError):
-            coop_w, total_w = 0.0, 0.0
-        cares_about_coop = total_w > 0 and coop_w / total_w >= 0.2
-        if meta.get('n_players', 2) >= BIG_GROUP and not cares_about_coop:
+        # Each player plays one group match (all four modes). Win = highest summed points
+        # in the group (a tie is a draw, worth nothing); cooperation % is averaged per mode.
+        # Against rival j, one round shifts the points gap by c*([j cooperated] - [we did]);
+        # the shared benefit cancels, so the lead is just a count of cooperations.
+        if wp / (ww + wc + wp) >= POINTS_ONLY_NP:
             return 'D'
-
-        if not last_moves:
-            return 'C'
-        others = opponents_histories
-        n_others = len(others)
-        mode = info.get('mode', 'standard')
-
-        # Defect at the end of a match whose length we know.
-        if mode in ('standard', 'discounted') and rnd >= FIXED_LENGTH - ENDGAME_NP:
+        if not opponents_histories or rnd == 0:
             return 'D'
-
-        # Has the group ever kept fully cooperating right after a lone defector?
-        # (Someone else's defection, or one of ours.) That is evidence that free-riding
-        # will not break the group.
-        tolerated = False
-        punished = False
-        for t in range(rnd - 1):
-            defectors = [i for i in range(n_others) if others[i][t] == 'D']
-            lone_other = len(defectors) == 1 and me[t] == 'C'
-            lone_me = len(defectors) == 0 and me[t] == 'D'
-            if not (lone_other or lone_me):
-                continue
-            # Did the players who cooperated at t keep cooperating at t+1?
-            still = all(others[i][t + 1] == 'C' for i in range(n_others) if i not in defectors)
-            if still:
-                tolerated = True
-            elif lone_me:
-                punished = True     # our own free-ride was punished: stop for good
-
-        last_coop = last_moves.count('C')
-        if tolerated and not punished and last_coop >= n_others - FREE_RIDE_SLACK and rnd >= 3:
-            return 'D'
-
-        # A player who defects most of the time will drag the group down anyway:
-        # don't pay into a jar that is going to empty.
-        if rnd >= 4 and any(h.count('D') * 2 > len(h) for h in others) and DOOMED_D:
-            return 'D'
-
-        # No evidence yet? Test the group once, early, while everyone is cooperating.
-        # Only the top 3 score marks, so finding a tolerant group is worth the risk.
-        if PROBE_NP and rnd == PROBE_NP and 'D' not in me and \
-                all(h[t] == 'C' for h in others for t in range(rnd)):
-            return 'D'
-
-        # Repair after we were punished: cooperate a few rounds to rebuild.
-        if punished and 'D' in me[-3:] and last_coop >= n_others // 2:
-            return 'C'
-
-        # Conditional cooperation: keep paying in while most of the group does.
-        if last_coop >= COOP_SHARE * n_others:
-            return 'C'
-        if OLIVE and rnd % 10 == 0 and last_coop > 0:
-            return 'C'
-        return 'D'
+        # A rival who has defected at least as much as us and is still defecting can't be
+        # out-scored: give up the win and bank cooperation instead.
+        my_c = me.count('C')
+        if rnd >= HOPELESS_NP:
+            for h in opponents_histories:
+                if h.count('C') <= my_c and 'C' not in h[-HOPELESS_NP:]:
+                    return 'C'
+        # Discounted mode: late rounds are worth almost no points but count fully for
+        # cooperation, so cooperate as soon as no rival can catch up any more.
+        disc = info.get('mode') == 'discounted'
+        df = float(info.get('discount_factor') or 0.95) if disc else 1.0
+        wts = [df ** t for t in range(len(me))]
+        mine = sum(x for x, m in zip(wts, me) if m == 'C')
+        lead = min(sum(x for x, m in zip(wts, h) if m == 'C') for h in opponents_histories) - mine
+        need = LEAD_NP
+        if disc and df < 1:
+            need = min(LEAD_NP, df ** rnd / (1 - df) + 0.5)
+        return 'C' if lead >= need else 'D'
 
     # ------------------------------------------------------------------ 1v1
     # The ranking weights are visible. If win rate dominates, always defecting is best:
     # it can never lose a match. Estimated (win, cooperation, points%) profiles from
     # local testing: this strategy ~(0.75, 0.90, 0.58), always-defect ~(0.95, 0.0, 0.30).
-    w = info.get('weights') or {}
-    try:
-        ww, wc, wp = (float(w.get(k) or 0) for k in ('win_rate', 'cooperation', 'points'))
-    except (TypeError, ValueError, AttributeError):
-        ww = wc = wp = 0.0
     if 0.95 * ww + 0.30 * wp > 0.75 * ww + 0.90 * wc + 0.58 * wp:
         return 'D'
 

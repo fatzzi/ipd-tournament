@@ -5,15 +5,18 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
     fmt = info.get('format', '2-player')
     rnd = meta.get('round', len(my_history))
     me = my_history
+    w = info.get('weights') or {}
+    try:
+        ww, wc, wp = (float(w.get(k) or 0) for k in ('win_rate', 'cooperation', 'points'))
+    except (TypeError, ValueError, AttributeError):
+        ww = wc = wp = 0.0
+    if ww + wc + wp <= 0:
+        ww, wc, wp = (0.33, 0.34, 0.33)
     FIXED_LENGTH = 200
     ENDGAME_1V1 = 7
-    ENDGAME_NP = 2
-    PROBE_NP = 2
-    FREE_RIDE_SLACK = 1
-    COOP_SHARE = 0.5
-    DOOMED_D = True
-    OLIVE = True
-    BIG_GROUP = 2
+    LEAD_NP = 4
+    HOPELESS_NP = 5
+    POINTS_ONLY_NP = 0.8
     CALM_YIELD = 0
     STOCHASTIC_CONTINUE = 0.995
     RESPONSIVE_WINDOW = 30
@@ -24,54 +27,24 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
             return 'C'
         return 'C' if CALM_YIELD and meta['rng'].random() < CALM_YIELD else 'D'
     if fmt == 'n_player':
-        w = info.get('weights') or {}
-        try:
-            coop_w = float(w.get('cooperation') or 0)
-            total_w = sum((float(w.get(k) or 0) for k in ('win_rate', 'cooperation', 'points')))
-        except (TypeError, ValueError, AttributeError):
-            coop_w, total_w = (0.0, 0.0)
-        cares_about_coop = total_w > 0 and coop_w / total_w >= 0.2
-        if meta.get('n_players', 2) >= BIG_GROUP and (not cares_about_coop):
+        if wp / (ww + wc + wp) >= POINTS_ONLY_NP:
             return 'D'
-        if not last_moves:
-            return 'C'
-        others = opponents_histories
-        n_others = len(others)
-        mode = info.get('mode', 'standard')
-        if mode in ('standard', 'discounted') and rnd >= FIXED_LENGTH - ENDGAME_NP:
+        if not opponents_histories or rnd == 0:
             return 'D'
-        tolerated = False
-        punished = False
-        for t in range(rnd - 1):
-            defectors = [i for i in range(n_others) if others[i][t] == 'D']
-            lone_other = len(defectors) == 1 and me[t] == 'C'
-            lone_me = len(defectors) == 0 and me[t] == 'D'
-            if not (lone_other or lone_me):
-                continue
-            still = all((others[i][t + 1] == 'C' for i in range(n_others) if i not in defectors))
-            if still:
-                tolerated = True
-            elif lone_me:
-                punished = True
-        last_coop = last_moves.count('C')
-        if tolerated and (not punished) and (last_coop >= n_others - FREE_RIDE_SLACK) and (rnd >= 3):
-            return 'D'
-        if rnd >= 4 and any((h.count('D') * 2 > len(h) for h in others)) and DOOMED_D:
-            return 'D'
-        if PROBE_NP and rnd == PROBE_NP and ('D' not in me) and all((h[t] == 'C' for h in others for t in range(rnd))):
-            return 'D'
-        if punished and 'D' in me[-3:] and (last_coop >= n_others // 2):
-            return 'C'
-        if last_coop >= COOP_SHARE * n_others:
-            return 'C'
-        if OLIVE and rnd % 10 == 0 and (last_coop > 0):
-            return 'C'
-        return 'D'
-    w = info.get('weights') or {}
-    try:
-        ww, wc, wp = (float(w.get(k) or 0) for k in ('win_rate', 'cooperation', 'points'))
-    except (TypeError, ValueError, AttributeError):
-        ww = wc = wp = 0.0
+        my_c = me.count('C')
+        if rnd >= HOPELESS_NP:
+            for h in opponents_histories:
+                if h.count('C') <= my_c and 'C' not in h[-HOPELESS_NP:]:
+                    return 'C'
+        disc = info.get('mode') == 'discounted'
+        df = float(info.get('discount_factor') or 0.95) if disc else 1.0
+        wts = [df ** t for t in range(len(me))]
+        mine = sum((x for x, m in zip(wts, me) if m == 'C'))
+        lead = min((sum((x for x, m in zip(wts, h) if m == 'C')) for h in opponents_histories)) - mine
+        need = LEAD_NP
+        if disc and df < 1:
+            need = min(LEAD_NP, df ** rnd / (1 - df) + 0.5)
+        return 'C' if lead >= need else 'D'
     if 0.95 * ww + 0.3 * wp > 0.75 * ww + 0.9 * wc + 0.58 * wp:
         return 'D'
     last_round = False
