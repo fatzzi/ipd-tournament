@@ -5,15 +5,27 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
     """One strategy for all three games.
 
     1v1       : contrite tit-for-tat that stops cooperating with opponents who don't
-                return it, defects in the last 7 rounds of a 200-round match (not in
-                stochastic matches, which can run past 200). Plays
+                return it; harvests opponents that never punish our defections; defects
+                only in the last round under points-only (longer endgame when win rate is
+                weighted), not in stochastic matches, which can run past 200. Plays
                 "never trail" when win rate is weighted, always-defect if it dominates.
     N-Player  : the site ranks by (group win, cooperation %, points %). Defect until we
                 safely lead every rival, then cooperate; if a rival defects as much as we
                 do, the win is gone (a tie is not a win), so cooperate fully. Pure
                 free-riding only when the weights are (nearly) points-only.
     OS sim    : give the CPU back when busy now or one signal ago, hold it when calm.
+
+    The whole decision runs under try/except: any unexpected error falls back to
+    tit-for-tat, so a bad edge case can never crash the entry into disqualification.
     """
+    try:
+        return _brain((last_moves, my_history, opponents_histories, meta))
+    except Exception:
+        return last_moves[0] if last_moves else 'C'
+
+
+def _brain(ctx):
+    last_moves, my_history, opponents_histories, meta = ctx
     info = meta.get('tournament_info') or {}
     fmt = info.get('format', '2-player')
     rnd = meta.get('round', len(my_history))

@@ -1,6 +1,13 @@
 import random
 
 def sentinel(last_moves, my_history, opponents_histories, meta):
+ try:
+  return _brain((last_moves, my_history, opponents_histories, meta))
+ except Exception:
+  return last_moves[0] if last_moves else 'C'
+
+def _brain(ctx):
+ last_moves, my_history, opponents_histories, meta = ctx
  info = meta.get('tournament_info') or {}
  fmt = info.get('format', '2-player')
  rnd = meta.get('round', len(my_history))
