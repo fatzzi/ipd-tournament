@@ -21,6 +21,7 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
  RESPONSIVE_WINDOW = 30
  RETURN_MIN = 0.6
  WIN_SHARE = 0.25
+ EXPLOIT_PD = 0.8
  if fmt == 'os_simulation':
   if not last_moves or last_moves[0] == 'D':
    return 'C'
@@ -83,6 +84,8 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
   lo = max(0, n - 1 - RESPONSIVE_WINDOW)
   after_c = [opp[t + 1] for t in range(lo, n - 1) if me[t] == 'C']
   after_d = [opp[t + 1] for t in range(lo, n - 1) if me[t] == 'D']
+  if len(after_d) >= 5 and after_d.count('C') / len(after_d) >= EXPLOIT_PD:
+   return 'D'
   if len(after_c) >= 5 and len(after_d) >= 5:
    pc = after_c.count('C') / len(after_c)
    pd = after_d.count('C') / len(after_d)

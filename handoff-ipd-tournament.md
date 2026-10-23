@@ -59,8 +59,9 @@ You are continuing work from a previous chat. That chat is gone; this file is th
 | OS: recent1 = give CPU back if busy now or at the previous signal (`OS_LOOKBACK = 1`) | Beat the guide's rule in 15/21 ten-seed windows; 1st in full local run |
 | N-Player: lead/give-up hybrid under weighted ranking; always defect when points ≥ 80% of weights (`POINTS_ONLY_NP = 0.8`) | Site may weight cooperation; tie at top = draw (no win) |
 | 1v1: no RNG look-ahead in Sprint 1; keep stochastic-mode detection (skip endgame in stochastic matches) | User's fairness choice; detection-free version scored worse |
-| 1v1 endgame is weight-aware: `ENDGAME_1V1 = 7 if ww > 0 else 1` | Points-only (Sprint 1) → defect only round 199; longer endgame bleeds points to retaliators. Win-rate weighted (Sprint 2/Final) → keep 7 to secure wins. Lifted points-only mean 0.544→0.546, kept equal-weights 8/8 top-3. See `sprint1-retune-notes.md` |
-| Rejected for points: GTFT generosity (rng-draw artifact; neutral/worse clean), coop<45% cutoff (worse), detector on/off (neutral) | Tested 23 Oct; only the endgame change helped cleanly |
+| 1v1 endgame is weight-aware: `ENDGAME_1V1 = 7 if ww > 0 else 1` | Points-only (Sprint 1) → defect only round 199; longer endgame bleeds points to retaliators. Win-rate weighted (Sprint 2/Final) → keep 7 to secure wins. Kept equal-weights 8/8 top-3. See `sprint1-retune-notes.md` |
+| 1v1 exploit non-punishers: in the detector, if opp still cooperates ≥`EXPLOIT_PD`=0.8 AFTER our defections, defect | Field scan (`testing/v1_exploit_scan.py`): field is almost all reciprocators + a few exploiters; one pure pushover `nabiha_strat` (coops ~92% vs AllD). Harvesting it (head-to-head 2.87→4.40/rnd) lifted points-only exact-seed mean 0.546→**0.5558**, ranks→[4,18,1,10,1,4,5,2], **top3 0→3/8** incl. two #1s; equal-weights still 8/8. Safe (reciprocators punish → low rate → never caught) and general (auto-harvests any hidden AllC-type) |
+| Rejected: GTFT generosity (rng-draw artifact; neutral/worse clean), coop<45% cutoff (worse), detector on/off (neutral), early probe to unmask pure AllC (costs on real field: snapshot no-probe 9/12 top3 → probe 6/12) | Tested 23 Oct; only the endgame + exploit changes helped cleanly. butt_sahab's extra edge is per-classmate fingerprinting (not copied: fragile vs hidden baselines, against the don't-leak rule) |
 | Missing weights treated as 33/34/33 | Site results page default |
 | `submit.py` uses 1-space indents and LF line endings (`testing/make_submit.py`) | Hub hands code to the site in a URL capped at 7500 characters |
 | Not adopted: OS "express lane" combo (core 0 always C + recent1) | Rule was "only switch if it wins all 3"; it tied seed 1 |
@@ -123,8 +124,9 @@ You are continuing work from a previous chat. That chat is gone; this file is th
 | Item | Status | Version / location | Notes |
 |---|---|---|---|
 | Live submission | submitted as **yay** | commit `ec58f7b` | OLD (endgame 7). Retuned version below is NOT yet submitted |
-| Strategy (commented) | **retuned, uncommitted** | `strategies/strategy.py` | Only change vs `ec58f7b`: weight-aware endgame (`ENDGAME_1V1 = 7 if ww > 0 else 1`). Tunables at top |
-| Submission copy | **regenerated, uncommitted** | `strategies/submit.py` (3453 bytes, URL 6199, safe) | Matches strategy.py (0 mismatches). Resubmit this before 11:59pm with app v1.4.0. Regenerate: `python testing/make_submit.py` |
+| Strategy (commented) | **retuned** (committed 922fe80 = endgame; exploit rule uncommitted until final commit) | `strategies/strategy.py` | Changes vs `ec58f7b`: weight-aware endgame + exploit-non-punishers (`EXPLOIT_PD=0.8`). Tunables at top |
+| Submission copy | **regenerated** | `strategies/submit.py` (3561 bytes, URL 6381, safe) | Matches strategy.py (0 mismatches). Resubmit this before 11:59pm with app v1.4.0. Regenerate: `python testing/make_submit.py` |
+| Exploit scan | new | `testing/v1_exploit_scan.py` | Per-opponent payoff/coop vs AllD/AllC/TFT/Prober; found `nabiha_strat` as the only pushover |
 | Look-ahead version | saved | commit `add7723` | For Sprint 2 if the user wants it |
 | Last visible gallery | saved | `local-only/gallery_snapshot_2026-10-22_2337.json` (39 entries) | Code hidden after this |
 | New test scripts | in folder, **not committed** | `testing/np_weighted.py`, `testing/v1_sweep.py`, `testing/os_compare.py`, `testing/full/` (common, full_1v1, full_np, full_os) | `np_weighted.py` ranks with equal weights; `load_hub()` defaults to `local-only/strategies.json` (switch to the snapshot if new fetches have no code) |

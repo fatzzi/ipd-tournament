@@ -32,16 +32,13 @@ def mk(**rep):
     exec(s, g)
     return g['sentinel']
 
-# strategy.py now defaults to ENDGAME_1V1 = 1 and GEN = 0.2 (round-based). Compare the chosen
-# config against turning generosity off/up and reverting the endgame, with the clean mechanism.
-def gen(x): return {'GEN = 0.2': f'GEN = {x}'}
+# strategy.py defaults: weight-aware endgame + EXPLOIT_PD=0.8 (harvest non-punishers) + PROBE_ROUND=0.
+# Here: does adding an early probe (to also catch a pure AllC) help on +base without hurting snapshot?
 VARIANTS = {
-    'chosen(e1 gen.2)': {},
-    'gen off'         : gen(0.0),
-    'gen.15'          : gen(0.15),
-    'gen.3'           : gen(0.3),
-    'end2 gen.2'      : {'ENDGAME_1V1 = 1': 'ENDGAME_1V1 = 2'},
-    'OLD end7 gen0'   : {'ENDGAME_1V1 = 1': 'ENDGAME_1V1 = 7', 'GEN = 0.2': 'GEN = 0.0'},
+    'chosen(no probe)': {},
+    'probe1'          : {'PROBE_ROUND = 0': 'PROBE_ROUND = 1'},
+    'probe2'          : {'PROBE_ROUND = 0': 'PROBE_ROUND = 2'},
+    'exploit off'     : {'EXPLOIT_PD = 0.8': 'EXPLOIT_PD = 2.0'},
 }
 
 addbase = '+base' in sys.argv

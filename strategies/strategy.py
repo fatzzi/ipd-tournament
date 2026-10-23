@@ -38,6 +38,7 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
     RESPONSIVE_WINDOW = 30  # 1v1: rounds looked at when asking "does the opponent react to us?"
     RETURN_MIN = 0.6       # 1v1: stop cooperating if they return our C less often than this
     WIN_SHARE = 0.25      # 1v1: win-rate share of the weights that turns on "never trail"
+    EXPLOIT_PD = 0.8       # 1v1: if the opponent still cooperates this often AFTER our defections, it never punishes -> defect and harvest (catches pushovers like nabiha_strat; reciprocators punish, so their rate here is low and they are never caught)
 
     # ------------------------------------------------------------------ OS simulation
     if fmt == 'os_simulation':
@@ -140,6 +141,8 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
         lo = max(0, n - 1 - RESPONSIVE_WINDOW)
         after_c = [opp[t + 1] for t in range(lo, n - 1) if me[t] == 'C']
         after_d = [opp[t + 1] for t in range(lo, n - 1) if me[t] == 'D']
+        if len(after_d) >= 5 and after_d.count('C') / len(after_d) >= EXPLOIT_PD:
+            return 'D'         # they keep cooperating even after we defect -> just take it
         if len(after_c) >= 5 and len(after_d) >= 5:
             pc = after_c.count('C') / len(after_c)
             pd = after_d.count('C') / len(after_d)
