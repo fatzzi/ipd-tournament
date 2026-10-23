@@ -135,7 +135,7 @@ You are continuing work from a previous chat. That chat is gone; this file is th
 | New app v1.4.0 | not downloaded | Releases page | Needed for submitting and to diff the engine |
 
 ## 11. Next steps
-1. **DONE (23 Oct overnight):** retuned 1v1 for points-only — weight-aware endgame (see Decisions and `sprint1-retune-notes.md`). Result: points-only mean 0.544→0.546, still 0/8 top-3 (tight field; not a lock). OS remains the realistic medal. Generosity/cutoff tested and rejected. N-Player confirmed always-D is points-max. **submit.py is ready; user still needs to resubmit via app v1.4.0 before 11:59pm.**
+1. **DONE (23 Oct overnight):** retuned 1v1 for points-only — weight-aware endgame + exploit-non-punishers (see Decisions and `sprint1-retune-notes.md`). Result: exact-seed points-only mean 0.544→**0.5558**, top3 0→**3/8** incl. two #1s; equal-weights still 8/8. Committed to main (922fe80, 044e074), NOT pushed, NOT submitted. OS still the safest medal; 1v1 now a real (seed-dependent) top-3 contender. Generosity/cutoff/probe tested and rejected. N-Player always-D is points-max. **submit.py ready; user resubmits via app v1.4.0 before 11:59pm.**
 0. **Still open:** download/diff app v1.4.0 engine (below); decide whether to gamble N-Player `D+coop2` (pts% up, rank down — a wash).
 2. Ask the user whether to download the new app v1.4.0 source (read-only, own folder) and diff `core_simulation.py`, `n_player_simulation.py`, `app.py` vs `local-only/ipd-app`; re-verify RNG sharing, the 8.4M crash and scoring.
 3. If a retune wins clearly, regenerate `submit.py`, check safety + URL length, commit and push, and have the user resubmit before Sprint 1 ends (note: resubmitting moves us later in the tie-break).

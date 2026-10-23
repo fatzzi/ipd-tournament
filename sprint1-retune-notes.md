@@ -55,10 +55,16 @@ seed layout; trust the exact-seed `v1_sweep` numbers above.)
 - **OS is still our safest medal** (1st locally, 4.19). N-Player is pure always-defect under
   points-only (the points-max), ~5/30 top-3.
 
+## Robustness vs hidden baselines (anti-overfit)
+Re-run with classic baselines added to the pool (`v1_retune.py +base`, 12 seeds: TFT, AllD, AllC,
+grim, Pavlov, random, Prober, etc. — a proxy for the TA's hidden baselines): the exploit config
+gets **10/12 top-3, mean rank 2.17** — it does *not* depend on the specific 39 snapshot entries.
+
 ## Tried for "domination" and rejected
 - **Early probe (defect round 1) to also unmask a pure AllC:** helps only if the hidden pool has
-  unconditional cooperators, but on the real (snapshot) field it *costs* — it provokes the
-  reciprocators (snapshot: no-probe 9/12 top-3 → probe1 6/12 → probe2 1/12). Dropped.
+  unconditional cooperators, but it provokes reciprocators and is crushed by grim/exploiters.
+  Snapshot: no-probe 9/12 top-3 → probe1 6/12 → probe2 1/12. With baselines it is catastrophic:
+  no-probe 10/12 → probe1 **0/12** (rank 15) → probe2 0/12 (rank 30). Decisively dropped.
 
 ## Tried and rejected (clean harness)
 - **Generosity (GTFT-style forgiveness):** looked like a win (+0.3 pts) only because the first
