@@ -30,7 +30,7 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
 
     # Settings used by the class tournament (see itinerary page 5).
     FIXED_LENGTH = 200     # rounds in the standard / discounted modes
-    ENDGAME_1V1 = 7        # defect in the last N rounds of a 200-round 1v1 match (classmates start at 195)
+    ENDGAME_1V1 = 7 if ww > 0 else 1  # defect in the last N rounds of a 200-round 1v1 match: long when win rate is weighted (secures the match win), but just the last round under points-only, where a longer endgame only invites retaliation and bleeds points
     LEAD_NP = 4            # N-Player: cooperate once we lead every rival by this many (units of c)
     HOPELESS_NP = 5        # N-Player: a rival matching our defection this many rounds = no win possible
     POINTS_ONLY_NP = 0.8   # N-Player: points share of the weights above which we just free-ride

@@ -13,7 +13,7 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
  if ww + wc + wp <= 0:
   ww, wc, wp = (0.33, 0.34, 0.33)
  FIXED_LENGTH = 200
- ENDGAME_1V1 = 7
+ ENDGAME_1V1 = 7 if ww > 0 else 1
  LEAD_NP = 4
  HOPELESS_NP = 5
  POINTS_ONLY_NP = 0.8
