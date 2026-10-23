@@ -55,10 +55,22 @@ seed layout; trust the exact-seed `v1_sweep` numbers above.)
 - **OS is still our safest medal** (1st locally, 4.19). N-Player is pure always-defect under
   points-only (the points-max), ~5/30 top-3.
 
-## Robustness vs hidden baselines (anti-overfit)
-Re-run with classic baselines added to the pool (`v1_retune.py +base`, 12 seeds: TFT, AllD, AllC,
-grim, Pavlov, random, Prober, etc. — a proxy for the TA's hidden baselines): the exploit config
-gets **10/12 top-3, mean rank 2.17** — it does *not* depend on the specific 39 snapshot entries.
+## Robustness / anti-overfit (we can't see others' new uploads or the hidden baselines)
+Both changes are *principled behavioural rules*, not patterns matched to the 39 known classmates,
+and this is verified (`testing/v1_robust.py`):
+- **Exploit rule is inert on every normal strategy.** vs AllC, TFT, Grim, GTFT.3, NoisyTFT.15,
+  Pavlov, TF2T, Rand.5 — exploit-ON vs exploit-OFF differ by **0.000**. It fires *only* against a
+  strategy that both defects (so we retaliate and sample) and then keeps cooperating ≥80% after
+  our defections — i.e. a genuine pushover. It can never misfire on a reciprocator, so an unseen
+  classmate entry can't be hurt by it; it only ever adds points.
+- **It can't be baited.** vs a bait-then-grim adversary (cooperate unconditionally for B rounds,
+  then permanent all-D) for B = 10…60: exploit-ON == exploit-OFF. We never defect against a pure
+  cooperator, so we never trip a latent grudge.
+- **Generalises to unseen fields.** On the baseline-augmented pool (`v1_retune.py +base`, classic
+  baselines added): **10/12 top-3, mean rank 2.17**. On a field of *only* synthetic archetypes
+  (zero snapshot entries): **1st on 8/8 seeds** (57.9%).
+- The short endgame is the general points-optimum against any reciprocator, independent of the
+  specific field. No fingerprinting of specific classmates anywhere.
 
 ## Tried for "domination" and rejected
 - **Early probe (defect round 1) to also unmask a pure AllC:** helps only if the hidden pool has
