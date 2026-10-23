@@ -135,7 +135,8 @@ You are continuing work from a previous chat. That chat is gone; this file is th
 | New app v1.4.0 | not downloaded | Releases page | Needed for submitting and to diff the engine |
 
 ## 11. Next steps
-1. **DONE (23 Oct overnight):** retuned 1v1 for points-only — weight-aware endgame + exploit-non-punishers (see Decisions and `sprint1-retune-notes.md`). Result: exact-seed points-only mean 0.544→**0.5558**, top3 0→**3/8** incl. two #1s; equal-weights still 8/8. Committed to main (922fe80, 044e074), NOT pushed, NOT submitted. OS still the safest medal; 1v1 now a real (seed-dependent) top-3 contender. Generosity/cutoff/probe tested and rejected. N-Player always-D is points-max. **submit.py ready; user resubmits via app v1.4.0 before 11:59pm.**
+1. **DONE (23 Oct):** retuned 1v1 (weight-aware endgame + exploit-non-punishers), crash-proofed with try/except, committed+pushed to origin/main (up to 5075b2b). **Metric correction:** Sprint-1 ranks by `total_points` (not points_percentage my sweeps first used — confirmed in v1.4.0 `ranking.py`). Under the REAL metric our strategy is **[2,3,2,2,2,2,2,1] = 8/8 top-3, mean rank 2.0**, consistent 2nd behind `butt_sahab` (fingerprinter). The exploit rule is decisive (8/8 vs 0/8 without it). Use `testing/v1_metric_check.py`.
+2. **DONE: app v1.4.0 engine diff** (downloaded + read-only diffed). Safe on every axis: is_safe_code/extract/PublicGoodsPayoff/OS all identical; our submit passes; we use ≤124 of 200000 line-events. See `sprint1-retune-notes.md` "App v1.4.0 engine diff". **submit.py ready; user resubmits via app v1.4.0 before 11:59pm — validated safe.**
 0. **Still open:** download/diff app v1.4.0 engine (below); decide whether to gamble N-Player `D+coop2` (pts% up, rank down — a wash).
 2. Ask the user whether to download the new app v1.4.0 source (read-only, own folder) and diff `core_simulation.py`, `n_player_simulation.py`, `app.py` vs `local-only/ipd-app`; re-verify RNG sharing, the 8.4M crash and scoring.
 3. If a retune wins clearly, regenerate `submit.py`, check safety + URL length, commit and push, and have the user resubmit before Sprint 1 ends (note: resubmitting moves us later in the tie-break).
@@ -145,7 +146,7 @@ You are continuing work from a previous chat. That chat is gone; this file is th
 - What exactly ends Sprint 1 on Fri 23 Oct (time of the lock)? Not stated on the site.
 - Was the OS crash bug report sent to the instructor/TA? (yes / no)
 - Should the look-ahead come back in Sprint 2? User's earlier plan: yes if we don't win Sprint 1 fairly.
-- Does the new app (v1.4.0) change the engine beyond the commit messages ("same results", "same numbers")? Unverified.
+- ~~Does the new app (v1.4.0) change the engine?~~ RESOLVED 23 Oct: diffed; safe, OS byte-identical, our submit passes. New: 200k line-event limit (we use ≤124), disqualification for crash/invalid (we crash-proofed).
 
 ## 13. Re-attach checklist
 - [ ] `handoff-ipd-tournament.md`: this file

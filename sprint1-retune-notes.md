@@ -32,7 +32,23 @@ if len(after_d) >= 5 and after_d.count('C') / len(after_d) >= EXPLOIT_PD:  # EXP
 `strategies/submit.py` regenerated (3561 bytes, URL 6381 chars < 7500, passes `is_safe_code`,
 behaviour identical to `strategy.py`). OS and N-Player code paths are unchanged.
 
-## Results (exact-seed harness `testing/v1_sweep.py`, 8 seeds, 22 Oct 23:37 snapshot field)
+## IMPORTANT metric correction (from diffing app v1.4.0, 23 Oct)
+v1.4.0's `ranking.py` and the FAQ rank Sprint-1 1v1 (and N-Player) by **`total_points`** — the sum
+over opponents of the mode-averaged per-round score, each of the 4 modes weighted equally. My
+earlier sweeps ranked by **`points_percentage`** (all rounds pooled, so long stochastic matches
+dominate and add noise). Under the REAL metric our committed strategy is far stronger:
+
+| ranked by (8 seeds, snapshot) | our ranks | top-3 | mean |
+|---|---|---|---|
+| **total_points (real v1.4.0 metric)** | **[2,3,2,2,2,2,2,1]** | **8/8** | **2.00** |
+| points_percentage (old harness)       | [4,18,1,10,1,4,5,2] | 3/8 | 5.62 |
+
+Under `total_points` the config is confirmed optimal: exploit-rule ON is decisive (**8/8 vs 0/8**
+top-3 without it), and endgame=1 (mean 2.00) edges endgame=7 (2.38). #1 is almost always
+`butt_sahab` (the fingerprinter); we are a consistent 2nd, and should overtake once the hidden
+baselines dilute the specific classmates it targets. Use `testing/v1_metric_check.py` going forward.
+
+## Results (OLD harness, ranked by points_percentage — see correction above)
 | | points-only mean | points-only student ranks | top3 | equal ranks | top3 |
 |---|---|---|---|---|---|
 | Baseline (end 7)             | 0.5440 | [9, 23, 7, 22, 9, 16, 16, 11] | 0/8 | [1,2,1,3,1,2,1,1] | 8/8 |
@@ -98,6 +114,23 @@ pure always-defect. Flagging only in case you want to gamble on it for N-Player.
 - `testing/v1_policies.py` — direct 1v1 policy search. NOTE its simplified `endgame` defects at
   every round ≥199, which is wrong in stochastic matches; trust `v1_retune` / `v1_sweep` instead.
 - `testing/np_points.py` — N-Player real-engine points-only ranking with the coop-% tiebreak.
+
+## App v1.4.0 engine diff (23 Oct, source downloaded + read-only diffed vs local reference)
+Verdict: **nothing in v1.4.0 breaks us; submit.py is valid as-is.**
+- Gatekeepers IDENTICAL: `is_safe_code`, `extract_strategy_func` (still picks our 4-arg `sentinel`),
+  `ALLOWED_IMPORTS`, 20000-byte cap. Our submit passes.
+- `PublicGoodsPayoff` IDENTICAL → N-Player always-defect still points-max.
+- Scoring/ranking moved to `ranking.py` (weighted-score formula unchanged); Sprint-1 metric is
+  `total_points` (see correction above).
+- `game()` still gives strategies the match RNG; only adds per-player deepcopy of the info dict and
+  error attribution. Our stochastic detector is unaffected. `round_robin` is now multi-core
+  (`parallel.py`) but deterministic / equivalent to serial.
+- OS (our medal) byte-identical: `build_core_trace`, `_clamped_lognormal`, `make_seeds`,
+  `run_baseline_simulation`, `_run_replicated`, `RoundRobin`. "Same numbers" verified → 4.19 stands.
+- New: `instruction_limit.py` caps each call at 200,000 line-events (crash/invalid/limit =
+  DISQUALIFIED, matches voided). `InstructionLimitExceeded` is a BaseException (our `except
+  Exception` can't swallow it). Measured our usage: **≤124 line-events/call** — 1600x margin. Safe.
+  The try/except crash-proofing we added guards the crash/invalid-return cases.
 
 ## To resubmit (you do this — I don't submit or sign in)
 1. Open app **v1.4.0** (old versions are refused by the site).
