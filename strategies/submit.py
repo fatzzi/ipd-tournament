@@ -24,7 +24,8 @@ def _brain(ctx):
  POINTS_ONLY_NP = 0.8
  NP_TARGET = 1.0
  ENDGAME_NP = 10
- OS_LOOKBACK = 2
+ OS_LOOKBACK = 7
+ OS_MIN_BUSY = 2
  RESPONSIVE_WINDOW = 30
  RETURN_MIN = 0.6
  WIN_SHARE = 0.25
@@ -33,7 +34,7 @@ def _brain(ctx):
   if not last_moves or last_moves[0] == 'D':
    return 'C'
   past = opponents_histories[0] if opponents_histories else []
-  if OS_LOOKBACK and 'D' in past[-OS_LOOKBACK:]:
+  if OS_LOOKBACK and past[-OS_LOOKBACK:].count('D') >= OS_MIN_BUSY:
    return 'C'
   return 'D'
  if fmt == 'n_player':

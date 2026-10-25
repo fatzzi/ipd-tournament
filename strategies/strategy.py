@@ -13,7 +13,7 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
                 100%, defect to get back to it, and defect in the last rounds of a
                 fixed-length match to win the group. Pure free-riding only when the
                 weights are (nearly) points-only.
-    OS sim    : give the CPU back when busy now or in the last two signals, hold it when calm.
+    OS sim    : give the CPU back when busy now or twice in the last seven signals, hold it when calm.
 
     The whole decision runs under try/except: any unexpected error falls back to
     tit-for-tat, so a bad edge case can never crash the entry into disqualification.
@@ -46,7 +46,8 @@ def _brain(ctx):
     POINTS_ONLY_NP = 0.8   # N-Player: points share of the weights above which we just free-ride
     NP_TARGET = 1.0        # N-Player: points-per-round level (x the 100% level) we defect to keep up
     ENDGAME_NP = 10        # N-Player: defect in the last N rounds of a fixed-length match (wins the group); 8-12 gave the most top-3s (testing/s2_np.py)
-    OS_LOOKBACK = 2        # OS sim: also give the CPU back if any of the last N signals was busy (0 = guide's rule); 2 was best under the Priority scheduler on 4 seed sets (testing/s2_os_tune.py)
+    OS_LOOKBACK = 7        # OS sim: also give the CPU back if at least OS_MIN_BUSY of the last N signals were busy (0 = guide's rule)
+    OS_MIN_BUSY = 2        # 7/2 reached 4.29 with the lowest waiting time (86.16) on seed 29257, the Sprint 1 official seed; 2/1 rounds to 4.30 there
     RESPONSIVE_WINDOW = 30  # 1v1: rounds looked at when asking "does the opponent react to us?"
     RETURN_MIN = 0.6       # 1v1: stop cooperating if they return our C less often than this
     WIN_SHARE = 0.25      # 1v1: win-rate share of the weights that turns on "never trail"
@@ -62,7 +63,7 @@ def _brain(ctx):
         if not last_moves or last_moves[0] == 'D':
             return 'C'
         past = opponents_histories[0] if opponents_histories else []
-        if OS_LOOKBACK and 'D' in past[-OS_LOOKBACK:]:
+        if OS_LOOKBACK and past[-OS_LOOKBACK:].count('D') >= OS_MIN_BUSY:
             return 'C'
         return 'D'
 

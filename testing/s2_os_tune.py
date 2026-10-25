@@ -15,9 +15,9 @@ def s(last_moves, my_history, opponents_histories, meta):
 '''
 cands = {'allC': "def s(a,b,c,d):\n    return 'C'\n", 'allD': "def s(a,b,c,d):\n    return 'D'\n",
          'guideInv': "def s(a,b,c,d):\n    return 'D' if a and a[0]=='D' else 'C'\n"}
-for K in (0, 1, 2, 3, 4, 5, 6, 8, 10, 15, 20):
+for K in (2, 3, 4, 5, 6, 7, 8, 9, 10, 12):
     cands[f'K{K}'] = rule(K)
-for K, m in ((4, 2), (6, 2), (8, 2), (8, 3), (10, 3)):
+for K, m in ((5, 2), (6, 2), (7, 2), (8, 2), (7, 3), (9, 3), (10, 3), (12, 4)):
     cands[f'K{K}m{m}'] = rule(K, m)
 if __name__ == '__main__':
     seeds = [int(x) for x in sys.argv[1:]] or [29257, 1, 1000, 424242]
