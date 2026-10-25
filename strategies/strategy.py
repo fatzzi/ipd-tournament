@@ -48,7 +48,7 @@ def _brain(ctx):
     OS_MIN_BUSY = 2        # 7/2 reached 4.29 with the lowest waiting time (86.16) on seed 29257, the Sprint 1 official seed; 2/1 rounds to 4.30 there
     RESPONSIVE_WINDOW = 30  # 1v1: rounds looked at when asking "does the opponent react to us?"
     RETURN_MIN = 0.6       # 1v1: stop cooperating if they return our C less often than this
-    WIN_SHARE = 0.25      # 1v1: win-rate share of the weights that turns on "never trail"
+    WIN_SHARE = 0.15      # 1v1: win-rate share of the weights that turns on "never trail"
     EXPLOIT_PD = 0.8       # 1v1: if the opponent still cooperates this often AFTER our defections, it never punishes -> defect and harvest (catches pushovers like nabiha_strat; reciprocators punish, so their rate here is low and they are never caught)
 
     # ------------------------------------------------------------------ OS simulation

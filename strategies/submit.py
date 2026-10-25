@@ -27,7 +27,7 @@ def _brain(ctx):
  OS_MIN_BUSY = 2
  RESPONSIVE_WINDOW = 30
  RETURN_MIN = 0.6
- WIN_SHARE = 0.25
+ WIN_SHARE = 0.15
  EXPLOIT_PD = 0.8
  if fmt == 'os_simulation':
   if not last_moves or last_moves[0] == 'D':
