@@ -20,11 +20,11 @@ def _brain(ctx):
  if ww + wc + wp <= 0:
   ww, wc, wp = (0.33, 0.34, 0.33)
  FIXED_LENGTH = 200
- ENDGAME_1V1 = 7 if ww > 0 else 1
- LEAD_NP = 4
- HOPELESS_NP = 5
+ ENDGAME_1V1 = 20 if ww > 0 else 1
  POINTS_ONLY_NP = 0.8
- OS_LOOKBACK = 1
+ NP_TARGET = 1.0
+ ENDGAME_NP = 10
+ OS_LOOKBACK = 2
  RESPONSIVE_WINDOW = 30
  RETURN_MIN = 0.6
  WIN_SHARE = 0.25
@@ -39,22 +39,17 @@ def _brain(ctx):
  if fmt == 'n_player':
   if wp / (ww + wc + wp) >= POINTS_ONLY_NP:
    return 'D'
-  if not opponents_histories or rnd == 0:
+  if not opponents_histories:
+   return 'C'
+  pm = info.get('payoff_model') or {}
+  b, c = (float(pm.get('b', 0.3) or 0), float(pm.get('c', 1) or 1))
+  cap = max(b * (len(opponents_histories) + 1) - c, 0.01)
+  if info.get('mode') in ('standard', 'discounted') and FIXED_LENGTH - ENDGAME_NP <= rnd < FIXED_LENGTH:
    return 'D'
-  my_c = me.count('C')
-  if rnd >= HOPELESS_NP:
-   for h in opponents_histories:
-    if h.count('C') <= my_c and 'C' not in h[-HOPELESS_NP:]:
-     return 'C'
-  disc = info.get('mode') == 'discounted'
-  df = float(info.get('discount_factor') or 0.95) if disc else 1.0
-  wts = [df ** t for t in range(len(me))]
-  mine = sum((x for x, m in zip(wts, me) if m == 'C'))
-  lead = min((sum((x for x, m in zip(wts, h) if m == 'C')) for h in opponents_histories)) - mine
-  need = LEAD_NP
-  if disc and df < 1:
-   need = min(LEAD_NP, df ** rnd / (1 - df) + 0.5)
-  return 'C' if lead >= need else 'D'
+  if rnd == 0 or wc >= wp * (c - b) / cap:
+   return 'C'
+  got = sum((b * (sum((h[t] == 'C' for h in opponents_histories)) + (me[t] == 'C')) - c * (me[t] == 'C') for t in range(rnd)))
+  return 'C' if got / rnd >= cap * NP_TARGET - 1e-09 else 'D'
  if 0.95 * ww + 0.3 * wp > 0.75 * ww + 0.9 * wc + 0.58 * wp:
   return 'D'
  stochastic = False

@@ -9,11 +9,11 @@ def sentinel(last_moves, my_history, opponents_histories, meta):
                 only in the last round under points-only (longer endgame when win rate is
                 weighted), not in stochastic matches, which can run past 200. Plays
                 "never trail" when win rate is weighted, always-defect if it dominates.
-    N-Player  : the site ranks by (group win, cooperation %, points %). Defect until we
-                safely lead every rival, then cooperate; if a rival defects as much as we
-                do, the win is gone (a tie is not a win), so cooperate fully. Pure
-                free-riding only when the weights are (nearly) points-only.
-    OS sim    : give the CPU back when busy now or one signal ago, hold it when calm.
+    N-Player  : cooperate while our points per round are at the level the site counts as
+                100%, defect to get back to it, and defect in the last rounds of a
+                fixed-length match to win the group. Pure free-riding only when the
+                weights are (nearly) points-only.
+    OS sim    : give the CPU back when busy now or in the last two signals, hold it when calm.
 
     The whole decision runs under try/except: any unexpected error falls back to
     tit-for-tat, so a bad edge case can never crash the entry into disqualification.
@@ -42,11 +42,11 @@ def _brain(ctx):
 
     # Settings used by the class tournament (see itinerary page 5).
     FIXED_LENGTH = 200     # rounds in the standard / discounted modes
-    ENDGAME_1V1 = 7 if ww > 0 else 1  # defect in the last N rounds of a 200-round 1v1 match: long when win rate is weighted (secures the match win), but just the last round under points-only, where a longer endgame only invites retaliation and bleeds points
-    LEAD_NP = 4            # N-Player: cooperate once we lead every rival by this many (units of c)
-    HOPELESS_NP = 5        # N-Player: a rival matching our defection this many rounds = no win possible
+    ENDGAME_1V1 = 20 if ww > 0 else 1  # (Sprint 2: 20 stayed rank ~1 even against fields with 3x longer endgames, testing/s2_1v1.py) defect in the last N rounds of a 200-round 1v1 match: long when win rate is weighted (secures the match win), but just the last round under points-only, where a longer endgame only invites retaliation and bleeds points
     POINTS_ONLY_NP = 0.8   # N-Player: points share of the weights above which we just free-ride
-    OS_LOOKBACK = 1        # OS sim: also give the CPU back if any of the last N signals was busy (0 = guide's rule)
+    NP_TARGET = 1.0        # N-Player: points-per-round level (x the 100% level) we defect to keep up
+    ENDGAME_NP = 10        # N-Player: defect in the last N rounds of a fixed-length match (wins the group); 8-12 gave the most top-3s (testing/s2_np.py)
+    OS_LOOKBACK = 2        # OS sim: also give the CPU back if any of the last N signals was busy (0 = guide's rule); 2 was best under the Priority scheduler on 4 seed sets (testing/s2_os_tune.py)
     RESPONSIVE_WINDOW = 30  # 1v1: rounds looked at when asking "does the opponent react to us?"
     RETURN_MIN = 0.6       # 1v1: stop cooperating if they return our C less often than this
     WIN_SHARE = 0.25      # 1v1: win-rate share of the weights that turns on "never trail"
@@ -74,26 +74,24 @@ def _brain(ctx):
         # the shared benefit cancels, so the lead is just a count of cooperations.
         if wp / (ww + wc + wp) >= POINTS_ONLY_NP:
             return 'D'
-        if not opponents_histories or rnd == 0:
+        if not opponents_histories:
+            return 'C'
+        # Points count as a share of b*n - c per round (the all-cooperate payoff) and are
+        # clipped at 100%, so once we are at that level cooperating is free: it only adds
+        # cooperation %. Below it, a defection is worth (c - b) points and costs 1 move
+        # of cooperation, which the weights price at wp*(c-b)/cap vs wc: defect. The group
+        # win goes to whoever cooperated least, so defect in the last rounds of a
+        # fixed-length match, where nobody can answer it.
+        pm = info.get('payoff_model') or {}
+        b, c = float(pm.get('b', 0.3) or 0), float(pm.get('c', 1) or 1)
+        cap = max(b * (len(opponents_histories) + 1) - c, 0.01)
+        if info.get('mode') in ('standard', 'discounted') and FIXED_LENGTH - ENDGAME_NP <= rnd < FIXED_LENGTH:
             return 'D'
-        # A rival who has defected at least as much as us and is still defecting can't be
-        # out-scored: give up the win and bank cooperation instead.
-        my_c = me.count('C')
-        if rnd >= HOPELESS_NP:
-            for h in opponents_histories:
-                if h.count('C') <= my_c and 'C' not in h[-HOPELESS_NP:]:
-                    return 'C'
-        # Discounted mode: late rounds are worth almost no points but count fully for
-        # cooperation, so cooperate as soon as no rival can catch up any more.
-        disc = info.get('mode') == 'discounted'
-        df = float(info.get('discount_factor') or 0.95) if disc else 1.0
-        wts = [df ** t for t in range(len(me))]
-        mine = sum(x for x, m in zip(wts, me) if m == 'C')
-        lead = min(sum(x for x, m in zip(wts, h) if m == 'C') for h in opponents_histories) - mine
-        need = LEAD_NP
-        if disc and df < 1:
-            need = min(LEAD_NP, df ** rnd / (1 - df) + 0.5)
-        return 'C' if lead >= need else 'D'
+        if rnd == 0 or wc >= wp * (c - b) / cap:
+            return 'C'
+        got = sum(b * (sum(h[t] == 'C' for h in opponents_histories) + (me[t] == 'C')) - c * (me[t] == 'C')
+                  for t in range(rnd))
+        return 'C' if got / rnd >= cap * NP_TARGET - 1e-9 else 'D'
 
     # ------------------------------------------------------------------ 1v1
     # The ranking weights are visible. If win rate dominates, always defecting is best:
