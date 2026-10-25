@@ -20,7 +20,7 @@ def _brain(ctx):
  if ww + wc + wp <= 0:
   ww, wc, wp = (0.33, 0.34, 0.33)
  FIXED_LENGTH = 200
- ENDGAME_1V1 = 20 if ww > 0 else 1
+ ENDGAME_1V1 = 10 if ww > 0 else 1
  POINTS_ONLY_NP = 0.8
  NP_TARGET = 1.0
  ENDGAME_NP = 10
@@ -47,6 +47,12 @@ def _brain(ctx):
   if info.get('mode') in ('standard', 'discounted') and FIXED_LENGTH - ENDGAME_NP <= rnd < FIXED_LENGTH:
    return 'D'
   if rnd == 0 or wc >= wp * (c - b) / cap:
+   return 'C'
+  lo = max(0, rnd - 20)
+  k = sum((h[t] == 'C' for h in opponents_histories for t in range(lo, rnd))) / (rnd - lo)
+  x = max(0.0, min(1.0, (b * k - cap) / (c - b)))
+  mix = wc * x + wp * max(0.0, min(1.0, (b * k - (c - b) * x) / cap))
+  if wc + wp * max(0.0, min(1.0, (b * k + b - c) / cap)) > mix:
    return 'C'
   got = sum((b * (sum((h[t] == 'C' for h in opponents_histories)) + (me[t] == 'C')) - c * (me[t] == 'C') for t in range(rnd)))
   return 'C' if got / rnd >= cap * NP_TARGET - 1e-09 else 'D'

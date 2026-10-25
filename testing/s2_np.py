@@ -81,15 +81,16 @@ def field(seed, size=64):
     return out
 
 if __name__ == '__main__':
-    variants = {'old': {'NP_CAP': 'False'}, 'cap end3': {}, 'cap end20': {'ENDGAME_NP': '20'}, 'cap end30': {'ENDGAME_NP': '30'},
-                'cap end6': {'ENDGAME_NP': '6'}, 'cap end12': {'ENDGAME_NP': '12'},
-                'cap end8': {'ENDGAME_NP': '8'}}
+    variants = {'now': {},
+
+    }
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 40
-    st = {v: [] for v in variants}
+    st = {v: [] for v in list(variants) + ['before fix']}
     for sd in range(n):
         base = field(sd)
         me = {v: load('strategies/strategy.py', **s) for v, s in variants.items()}
-        for v in variants:
+        me['before fix'] = load(r'C:/Users/fxtim/AppData/Local/Temp/claude/C--Users-fxtim-Desktop-ipd-tournament/2a81a4e1-07e1-4ed4-be12-0eeb398ea05f/scratchpad/strategy_before.py')
+        for v in me:
             f = dict(base); f['ME'] = me[v]
             # The ME slot replaces a random field member so the group layout varies.
             res = tournament(f, 1000 + sd)

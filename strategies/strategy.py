@@ -42,7 +42,7 @@ def _brain(ctx):
 
     # Settings used by the class tournament (see itinerary page 5).
     FIXED_LENGTH = 200     # rounds in the standard / discounted modes
-    ENDGAME_1V1 = 20 if ww > 0 else 1  # (Sprint 2: 20 stayed rank ~1 even against fields with 3x longer endgames, testing/s2_1v1.py) defect in the last N rounds of a 200-round 1v1 match: long when win rate is weighted (secures the match win), but just the last round under points-only, where a longer endgame only invites retaliation and bleeds points
+    ENDGAME_1V1 = 10 if ww > 0 else 1  # (Sprint 2: 10 was best on the base synthetic field and on an in-app run vs the class gallery, 2nd of 66; 15-20 hedge longer rival endgames) defect in the last N rounds of a 200-round 1v1 match: long when win rate is weighted (secures the match win), but just the last round under points-only, where a longer endgame only invites retaliation and bleeds points
     POINTS_ONLY_NP = 0.8   # N-Player: points share of the weights above which we just free-ride
     NP_TARGET = 1.0        # N-Player: points-per-round level (x the 100% level) we defect to keep up
     ENDGAME_NP = 10        # N-Player: defect in the last N rounds of a fixed-length match (wins the group); 8-12 gave the most top-3s (testing/s2_np.py)
@@ -88,6 +88,16 @@ def _brain(ctx):
         if info.get('mode') in ('standard', 'discounted') and FIXED_LENGTH - ENDGAME_NP <= rnd < FIXED_LENGTH:
             return 'D'
         if rnd == 0 or wc >= wp * (c - b) / cap:
+            return 'C'
+        # Points are clipped at 0% too. With k others cooperating per round (recently), the best
+        # mix keeps us at the 100% level by cooperating a share x; if even all-out defection
+        # can't get near it (a group of defectors), points are ~0% whatever we do, so the
+        # cooperation weight is the only thing left to earn: cooperate.
+        lo = max(0, rnd - 20)
+        k = sum(h[t] == 'C' for h in opponents_histories for t in range(lo, rnd)) / (rnd - lo)
+        x = max(0.0, min(1.0, (b * k - cap) / (c - b)))
+        mix = wc * x + wp * max(0.0, min(1.0, (b * k - (c - b) * x) / cap))
+        if wc + wp * max(0.0, min(1.0, (b * k + b - c) / cap)) > mix:
             return 'C'
         got = sum(b * (sum(h[t] == 'C' for h in opponents_histories) + (me[t] == 'C')) - c * (me[t] == 'C')
                   for t in range(rnd))
