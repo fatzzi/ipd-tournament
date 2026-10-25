@@ -39,7 +39,7 @@ def _brain(ctx):
 
     # Settings used by the class tournament (see itinerary page 5).
     FIXED_LENGTH = 200     # rounds in the standard / discounted modes
-    ENDGAME_1V1 = 15 if ww > 0 else 1  # (Sprint 2: 15 in standard mode only gave 2nd of 66 in-app, 74.83; synthetic fields agree within noise) defect in the last N rounds of a 200-round 1v1 match: long when win rate is weighted (secures the match win), but just the last round under points-only, where a longer endgame only invites retaliation and bleeds points
+    ENDGAME_1V1 = 12 if ww > 0 else 1  # (Sprint 2, standard mode only: 12 beat 15 in-app vs the late-evening class gallery, 75.07 vs 74.93) defect in the last N rounds of a 200-round 1v1 match: long when win rate is weighted (secures the match win), but just the last round under points-only, where a longer endgame only invites retaliation and bleeds points
     END_MODES = ('standard',)  # 1v1: modes we run the endgame in; in discounted mode the last rounds are worth ~0 points but still cost cooperation
     POINTS_ONLY_NP = 0.8   # N-Player: points share of the weights above which we just free-ride
     NP_TARGET = 1.0        # N-Player: points-per-round level (x the 100% level) we defect to keep up

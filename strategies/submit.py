@@ -18,7 +18,7 @@ def _brain(ctx):
  if ww + wc + wp <= 0:
   ww, wc, wp = (0.33, 0.34, 0.33)
  FIXED_LENGTH = 200
- ENDGAME_1V1 = 15 if ww > 0 else 1
+ ENDGAME_1V1 = 12 if ww > 0 else 1
  END_MODES = ('standard',)
  POINTS_ONLY_NP = 0.8
  NP_TARGET = 1.0
