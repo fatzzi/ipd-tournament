@@ -95,9 +95,10 @@ def load(path, **subs):
 if __name__ == '__main__':
     path = 'strategies/strategy.py'
     variants = {
-        'current(end7)': {}, 'end3': {'ENDGAME_1V1': '3'}, 'end5': {'ENDGAME_1V1': '5'},
-        'end10': {'ENDGAME_1V1': '10'}, 'end12': {'ENDGAME_1V1': '12'}, 'end15': {'ENDGAME_1V1': '15'},
-        'end20': {'ENDGAME_1V1': '20'},
+        'std+disc e10 (now)': {}, 'std e10': {'END_MODES': "('standard',)"},
+        'std e15': {'END_MODES': "('standard',)", 'ENDGAME_1V1': '15'},
+        'std e6': {'END_MODES': "('standard',)", 'ENDGAME_1V1': '6'},
+        'std+disc e15': {'ENDGAME_1V1': '15'},
     }
     nseeds = int(sys.argv[1]) if len(sys.argv) > 1 else 12
     stats = {v: [] for v in variants}

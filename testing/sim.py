@@ -7,6 +7,7 @@ MATS = {'S1':{'CC':[3,3],'CD':[0,5],'DC':[5,0],'DD':[1,1]},
 MODES=['standard','discounted','stochastic','random']
 
 def game(fa,fb,mat,mode,R,seed,ti):
+    ti=dict(ti, mode=mode, rounds=200)  # the engine tells each match its mode
     rng=random.Random(seed); ha=[];hb=[]; wa=wb=tw=0; ra=rb=0; ca=cb=0; r=0
     lim = R if mode=='random' else 200
     while True:

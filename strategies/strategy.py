@@ -1,13 +1,10 @@
-import random
-
-
 def sentinel(last_moves, my_history, opponents_histories, meta):
     """One strategy for all three games.
 
     1v1       : contrite tit-for-tat that stops cooperating with opponents who don't
                 return it; harvests opponents that never punish our defections; defects
                 only in the last round under points-only (longer endgame when win rate is
-                weighted), not in stochastic matches, which can run past 200. Plays
+                weighted), only in the fixed-length modes. Plays
                 "never trail" when win rate is weighted, always-defect if it dominates.
     N-Player  : cooperate while our points per round are at the level the site counts as
                 100%, defect to get back to it, and defect in the last rounds of a
@@ -42,7 +39,8 @@ def _brain(ctx):
 
     # Settings used by the class tournament (see itinerary page 5).
     FIXED_LENGTH = 200     # rounds in the standard / discounted modes
-    ENDGAME_1V1 = 10 if ww > 0 else 1  # (Sprint 2: 10 was best on the base synthetic field and on an in-app run vs the class gallery, 2nd of 66; 15-20 hedge longer rival endgames) defect in the last N rounds of a 200-round 1v1 match: long when win rate is weighted (secures the match win), but just the last round under points-only, where a longer endgame only invites retaliation and bleeds points
+    ENDGAME_1V1 = 15 if ww > 0 else 1  # (Sprint 2: 15 in standard mode only gave 2nd of 66 in-app, 74.83; synthetic fields agree within noise) defect in the last N rounds of a 200-round 1v1 match: long when win rate is weighted (secures the match win), but just the last round under points-only, where a longer endgame only invites retaliation and bleeds points
+    END_MODES = ('standard',)  # 1v1: modes we run the endgame in; in discounted mode the last rounds are worth ~0 points but still cost cooperation
     POINTS_ONLY_NP = 0.8   # N-Player: points share of the weights above which we just free-ride
     NP_TARGET = 1.0        # N-Player: points-per-round level (x the 100% level) we defect to keep up
     ENDGAME_NP = 10        # N-Player: defect in the last N rounds of a fixed-length match (wins the group); 8-12 gave the most top-3s (testing/s2_np.py)
@@ -111,39 +109,14 @@ def _brain(ctx):
     if 0.95 * ww + 0.30 * wp > 0.75 * ww + 0.90 * wc + 0.58 * wp:
         return 'D'
 
-    # Is this a stochastic match? The generator that decides whether a stochastic match
-    # continues advances by exactly one draw per round, so if it moved by exactly one draw
-    # between every pair of our turns, the match may run past 200: skip the endgame.
-    # (The look-ahead at the next draw for the true last round was removed for Sprint 1;
-    # it is in commit add7723.)
-    stochastic = False
-    try:
-        state = meta['rng'].getstate()
-        me_fn = sentinel
-        if rnd == 0:
-            me_fn.prev_state, me_fn.one_draw_rounds = state, 0
-        else:
-            probe = random.Random()
-            probe.setstate(me_fn.prev_state)
-            probe.random()
-            if probe.getstate() == state:
-                me_fn.one_draw_rounds += 1
-            else:
-                me_fn.one_draw_rounds = -10 ** 6      # not stochastic, or someone else draws
-            me_fn.prev_state = state
-            if me_fn.one_draw_rounds == rnd and rnd >= 3:
-                stochastic = True
-    except Exception:
-        stochastic = False
-
     opp = opponents_histories[0] if opponents_histories else []
     if not opp:
         return 'C'
     n = len(opp)
 
-    # Endgame: a standard / discounted match is exactly 200 rounds.
-    # (Not in a stochastic match: it may well run on past 200.)
-    if not stochastic and FIXED_LENGTH - ENDGAME_1V1 <= rnd < FIXED_LENGTH:
+    # Endgame only where the last round is known: standard and discounted matches are
+    # exactly 200 rounds; stochastic and random ones end at a round nobody can see.
+    if info.get('mode', 'standard') in END_MODES and FIXED_LENGTH - ENDGAME_1V1 <= rnd < FIXED_LENGTH:
         return 'D'
 
     # When win rate carries real weight, never sit behind in a match: keep defecting

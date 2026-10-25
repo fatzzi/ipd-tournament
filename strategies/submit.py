@@ -1,5 +1,3 @@
-import random
-
 def sentinel(last_moves, my_history, opponents_histories, meta):
  try:
   return _brain((last_moves, my_history, opponents_histories, meta))
@@ -20,7 +18,8 @@ def _brain(ctx):
  if ww + wc + wp <= 0:
   ww, wc, wp = (0.33, 0.34, 0.33)
  FIXED_LENGTH = 200
- ENDGAME_1V1 = 10 if ww > 0 else 1
+ ENDGAME_1V1 = 15 if ww > 0 else 1
+ END_MODES = ('standard',)
  POINTS_ONLY_NP = 0.8
  NP_TARGET = 1.0
  ENDGAME_NP = 10
@@ -59,30 +58,11 @@ def _brain(ctx):
   return 'C' if got / rnd >= cap * NP_TARGET - 1e-09 else 'D'
  if 0.95 * ww + 0.3 * wp > 0.75 * ww + 0.9 * wc + 0.58 * wp:
   return 'D'
- stochastic = False
- try:
-  state = meta['rng'].getstate()
-  me_fn = sentinel
-  if rnd == 0:
-   me_fn.prev_state, me_fn.one_draw_rounds = (state, 0)
-  else:
-   probe = random.Random()
-   probe.setstate(me_fn.prev_state)
-   probe.random()
-   if probe.getstate() == state:
-    me_fn.one_draw_rounds += 1
-   else:
-    me_fn.one_draw_rounds = -10 ** 6
-   me_fn.prev_state = state
-   if me_fn.one_draw_rounds == rnd and rnd >= 3:
-    stochastic = True
- except Exception:
-  stochastic = False
  opp = opponents_histories[0] if opponents_histories else []
  if not opp:
   return 'C'
  n = len(opp)
- if not stochastic and FIXED_LENGTH - ENDGAME_1V1 <= rnd < FIXED_LENGTH:
+ if info.get('mode', 'standard') in END_MODES and FIXED_LENGTH - ENDGAME_1V1 <= rnd < FIXED_LENGTH:
   return 'D'
  if ww > 0 and ww / max(ww + wc + wp, 1e-09) >= WIN_SHARE:
   pm = info.get('payoff_matrix') or {'CC': [3, 3], 'CD': [0, 5], 'DC': [5, 0], 'DD': [1, 1]}
