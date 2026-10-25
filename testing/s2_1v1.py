@@ -94,18 +94,15 @@ def load(path, **subs):
 
 if __name__ == '__main__':
     path = 'strategies/strategy.py'
-    variants = {
-        'std+disc e10 (now)': {}, 'std e10': {'END_MODES': "('standard',)"},
-        'std e15': {'END_MODES': "('standard',)", 'ENDGAME_1V1': '15'},
-        'std e6': {'END_MODES': "('standard',)", 'ENDGAME_1V1': '6'},
-        'std+disc e15': {'ENDGAME_1V1': '15'},
-    }
+    variants = {'weight-aware (new)': {}}
+    HEAD = os.environ.get('HEAD_COPY')
     nseeds = int(sys.argv[1]) if len(sys.argv) > 1 else 12
+    if HEAD: variants['committed (d53091e)'] = 'head'
     stats = {v: [] for v in variants}
     for sd in range(nseeds):
         base = field(sd)
         for v, subs in variants.items():
-            f = dict(base); f['ME'] = load(path, **subs)
+            f = dict(base); f['ME'] = load(path, **subs) if subs != 'head' else load(HEAD)
             res = tournament_1v1(f, MAT, seed=100 + sd, weights=W)
             order = sorted(res, key=lambda n: -res[n]['weighted'])
             stats[v].append((order.index('ME') + 1, res['ME']['weighted'] * 100, res['ME']['win']))

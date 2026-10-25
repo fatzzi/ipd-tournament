@@ -62,10 +62,11 @@ def _brain(ctx):
  if not opp:
   return 'C'
  n = len(opp)
+ pm = info.get('payoff_matrix') or {'CC': [3, 3], 'CD': [0, 5], 'DC': [5, 0], 'DD': [1, 1]}
+ greedy = wp * (pm['DC'][0] - pm['CC'][0]) / max((v[0] for v in pm.values())) > wc
  if info.get('mode', 'standard') in END_MODES and FIXED_LENGTH - ENDGAME_1V1 <= rnd < FIXED_LENGTH:
   return 'D'
  if ww > 0 and ww / max(ww + wc + wp, 1e-09) >= WIN_SHARE:
-  pm = info.get('payoff_matrix') or {'CC': [3, 3], 'CD': [0, 5], 'DC': [5, 0], 'DD': [1, 1]}
   diff = sum((pm[a + b][0] - pm[a + b][1] for a, b in zip(me, opp)))
   if diff < 0:
    return 'D'
@@ -73,7 +74,7 @@ def _brain(ctx):
   lo = max(0, n - 1 - RESPONSIVE_WINDOW)
   after_c = [opp[t + 1] for t in range(lo, n - 1) if me[t] == 'C']
   after_d = [opp[t + 1] for t in range(lo, n - 1) if me[t] == 'D']
-  if len(after_d) >= 5 and after_d.count('C') / len(after_d) >= EXPLOIT_PD:
+  if greedy and len(after_d) >= 5 and (after_d.count('C') / len(after_d) >= EXPLOIT_PD):
    return 'D'
   if len(after_c) >= 5 and len(after_d) >= 5:
    pc = after_c.count('C') / len(after_c)

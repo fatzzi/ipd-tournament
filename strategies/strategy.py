@@ -113,6 +113,12 @@ def _brain(ctx):
     if not opp:
         return 'C'
     n = len(opp)
+    # Does the ranking pay for defecting on a cooperator? One such move gains (T - R) of
+    # the best round's points, times the points weight, and loses one move of
+    # cooperation. At 50/30/20 with 4/0/6/2 it doesn't, so we don't harvest pushovers
+    # there: the endgame already wins those pairs.
+    pm = info.get('payoff_matrix') or {'CC': [3, 3], 'CD': [0, 5], 'DC': [5, 0], 'DD': [1, 1]}
+    greedy = wp * (pm['DC'][0] - pm['CC'][0]) / max(v[0] for v in pm.values()) > wc
 
     # Endgame only where the last round is known: standard and discounted matches are
     # exactly 200 rounds; stochastic and random ones end at a round nobody can see.
@@ -122,7 +128,6 @@ def _brain(ctx):
     # When win rate carries real weight, never sit behind in a match: keep defecting
     # until the opponent's cooperation has paid back what they took.
     if ww > 0 and ww / max(ww + wc + wp, 1e-9) >= WIN_SHARE:
-        pm = info.get('payoff_matrix') or {'CC': [3, 3], 'CD': [0, 5], 'DC': [5, 0], 'DD': [1, 1]}
         diff = sum(pm[a + b][0] - pm[a + b][1] for a, b in zip(me, opp))
         if diff < 0:
             return 'D'
@@ -135,7 +140,7 @@ def _brain(ctx):
         lo = max(0, n - 1 - RESPONSIVE_WINDOW)
         after_c = [opp[t + 1] for t in range(lo, n - 1) if me[t] == 'C']
         after_d = [opp[t + 1] for t in range(lo, n - 1) if me[t] == 'D']
-        if len(after_d) >= 5 and after_d.count('C') / len(after_d) >= EXPLOIT_PD:
+        if greedy and len(after_d) >= 5 and after_d.count('C') / len(after_d) >= EXPLOIT_PD:
             return 'D'         # they keep cooperating even after we defect -> just take it
         if len(after_c) >= 5 and len(after_d) >= 5:
             pc = after_c.count('C') / len(after_c)
